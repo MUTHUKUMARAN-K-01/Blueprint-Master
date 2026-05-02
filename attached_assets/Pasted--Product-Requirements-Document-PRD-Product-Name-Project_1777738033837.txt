@@ -1,0 +1,82 @@
+# Product Requirements Document (PRD)
+**Product Name:** Project Omnisense (Market Intelligence Engine)
+**Team:** Null pointerz
+**Document Status:** Final (Hackathon MVP Blueprint)
+
+---
+
+## 1. Executive Summary
+Project Omnisense is an autonomous, multi-agent Market Intelligence Engine designed to eliminate the manual bottleneck of B2B client research and outreach preparation. By accepting just a `Company Name` and `One-line Category`, the system deploys a swarm of specialized AI agents to crawl the web, synthesize strategic insights using an ephemeral Knowledge Graph (GraphRAG), extract verified decision-maker contact data, and draft hyper-personalized outreach sequences complete with functional engagement tracking.
+
+## 2. The Problem Statement
+Before engaging a B2B client, sales professionals and consultants spend excessive hours manually cross-referencing PR feeds, competitor websites, and contact databases. Current AI solutions fail at this task due to two critical flaws:
+1.  **Context Loss:** Standard LLMs and vector-based RAG lose the "big picture" when analyzing dozens of disparate articles, missing subtle market tensions.
+2.  **Hallucinations:** Standard AI models frequently fabricate email addresses, phone numbers, and historical marketing campaigns when facts are unknown, rendering the outputs unusable in a professional setting.
+
+## 3. Unique Selling Propositions (USPs)
+*   **GraphRAG Synthesis:** Instead of basic keyword matching, Omnisense uses local LLMs to extract entity relationships and builds an ephemeral, in-memory Knowledge Graph (via `networkx`). This allows the AI to mathematically traverse competitor overlaps and deduce non-obvious "Strategic Watchouts."
+*   **Zero-Hallucination Guardrails:** A strict, deterministic routing architecture ensures that contact intelligence relies *only* on integrated API lookups. If data is unverified, the system defaults to "Data Unavailable," ensuring 100% factual accuracy.
+*   **Local-Cloud Hybrid Processing:** Heavy data extraction (triplet generation for the Knowledge Graph) is routed to local models via Ollama to ensure privacy, speed, and unlimited token processing, while cloud APIs handle the final fast-synthesis.
+*   **Actionable Proof-of-Concept:** The outreach tracking doesn't just explain the concept; the backend actively generates a unique 1x1 HTML tracking pixel embedded in the outreach draft, demonstrating a live implementation.
+
+---
+
+## 4. System Architecture & Tech Stack
+
+The architecture is highly decoupled, ensuring the UI remains responsive while the heavy autonomous processing occurs in the background.
+
+*   **Frontend User Interface:** Next.js (App Router), React, Tailwind CSS.
+*   **Backend API & Orchestration:** Python, FastAPI.
+*   **Agent Framework:** LangGraph (State Graphs to prevent infinite agent loops and maintain strict control flow).
+*   **LLM Inference:** Ollama (Llama 3 / Gemma) for local extraction; fallback to Groq/OpenAI for rapid formatting.
+*   **Graph Processing:** `networkx` for building and traversing the in-memory semantic graph.
+*   **Data Ingestion Tools:** Tavily Search API (LLM-optimized), Firecrawl (website-to-markdown scraping), and mock API integration for B2B contact data (simulating Apollo/Hunter).
+
+---
+
+## 5. Core Functional Requirements (FRs)
+
+The system is broken down into four distinct execution modules to generate the 10 required hackathon outputs.
+
+### Module 1: The Research Swarm (Outputs 1, 2, 4, 5)
+*   **FR 1.1 Input Handling:** The system must accept `Company Name` and `One-line Category` via a REST API endpoint.
+*   **FR 1.2 Parallel Scraping:** Specialized agents (Market, Brand, Events) must concurrently query search APIs to scrape recent PR feeds, event databases, and corporate websites.
+*   **FR 1.3 Data Formatting:** Raw markdown must be parsed to output the Company Overview, Market Position, Brand Activity (last 12-24 months), and Experiential Footprint.
+
+### Module 2: The Analyst Engine & GraphRAG (Outputs 3, 6)
+*   **FR 2.1 Entity Extraction:** Local LLMs must parse the raw scraped data to extract `(Subject) -> [Predicate] -> (Object)` triplets.
+*   **FR 2.2 Graph Construction:** The Python backend must build a directed graph from these triplets.
+*   **FR 2.3 Competitor & Risk Analysis:** The Analyst Agent will traverse this graph to map 3-5 direct competitors and formulate strategic watchouts (key risks/blind spots) based on intersecting graph nodes.
+
+### Module 3: Target Acquisition (Outputs 7, 8)
+*   **FR 3.1 Persona Definition:** The system must determine the most relevant buyer titles (e.g., CMO, VP of Sales) based on the specific industry context.
+*   **FR 3.2 Strict Contact Extraction:** The system queries the mock contact database. It must strictly return actual matches (Emails, Phones, LinkedIn) or flag the output as unavailable to prevent fabrication.
+
+### Module 4: Hyper-Personalization (Outputs 9, 10)
+*   **FR 4.1 Contextual Copywriting:** The Outreach Agent must generate a LinkedIn message and Cold Email draft. The copy *must* dynamically insert references to the brand's recent campaigns (from FR 1.3) and address the strategic watchouts (from FR 2.3).
+*   **FR 4.2 Pixel Generation:** The system must generate a mock `<img>` tracking pixel tag (`<img src="[https://omnisense-api.com/track/open/12345](https://omnisense-api.com/track/open/12345)" width="1" height="1" />`) and append it to the HTML email draft, alongside a brief explaining the webhook response tracking architecture.
+
+---
+
+## 6. User Interface (UI/UX) Requirements
+
+The frontend must function as a "ready solution" to excel in the live demo evaluation.
+
+*   **UI 1.0 The Command Input:** A clean, dark-mode landing page with clear input fields for the target company and category.
+*   **UI 2.0 The Agent Terminal (Loading State):** While the backend is processing, the UI must display a mock terminal component streaming the agent execution logs in real-time (e.g., `> Initializing Market Swarm...`, `> Extracting NetworkX Triplets...`, `> Querying Contact DB...`). This visually proves the multi-agent architecture to the judges.
+*   **UI 3.0 The Intelligence Dashboard:** The final payload must be rendered in a responsive CSS grid, utilizing distinct, readable cards for each of the 10 outputs.
+
+---
+
+## 7. Hackathon Evaluation Mapping
+
+This product is engineered specifically to maximize points against the provided judging criteria:
+
+| Evaluation Criteria | Omnisense Solution |
+| :--- | :--- |
+| **Depth and accuracy of intelligence** | Solved via GraphRAG, which uncovers 2nd-degree market connections rather than relying on shallow keyword searches. |
+| **Relevance of decision-makers** | Solved by the Target Node defining personas dynamically based on the input category before searching for contacts. |
+| **Quality of outreach** | Solved by forcing the Copywriter Agent to ingest Outputs 4 & 6, ensuring the message addresses actual recent brand events. |
+| **Cross-industry adaptability** | Solved by maintaining strictly agnostic LLM prompts that focus on structural extraction rather than industry-specific jargon. |
+| **Clarity of system architecture** | Solved visually by the Next.js Agent Terminal, which exposes the LangGraph routing steps during the live demo. |
+| **Function as a ready solution** | Solved by delivering a polished Next.js web application rather than a terminal script or Jupyter Notebook. |

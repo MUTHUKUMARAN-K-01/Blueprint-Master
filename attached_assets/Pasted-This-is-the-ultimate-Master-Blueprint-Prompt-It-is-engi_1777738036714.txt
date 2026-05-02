@@ -1,0 +1,66 @@
+This is the ultimate **Master Blueprint Prompt**. It is engineered specifically for advanced AI coding agents (like Cursor, Claude 3.5 Sonnet, or Devin). 
+
+AI agents fail when given vague instructions or when asked to write a massive codebase without a structural map. This prompt sets the exact boundaries, forces the integration of your winning USPs (GraphRAG and Zero-Hallucination), and dictates a step-by-step execution plan so the AI doesn't truncate its output.
+
+Copy everything inside the block below and paste it into your AI agent to begin the build.
+
+***
+
+**System Role:**
+Act as a Principal AI Architect and Senior Full-Stack Engineer. Your task is to build a complete, functioning Minimum Viable Product (MVP) for a hackathon project called "Project Omnisense" – a multi-agent Market Intelligence Engine.
+
+**Project Context & Objective:**
+The system accepts a `Company Name` and `One-line Category` from a frontend UI. It triggers a backend multi-agent workflow to autonomously research the brand, map the competitive landscape, identify key decision-makers, and draft highly personalized outreach. 
+
+The final output must be a structured JSON payload containing exactly these 10 elements:
+1. Company Overview (Model, scale, positioning)
+2. Market Position (Brand perception, recent shifts)
+3. Competitor Mapping (3-5 competitors with strengths/gaps)
+4. Brand Activity (Campaigns and launches from the last 12-24 months)
+5. Experiential Footprint (Events, sponsorships, activations)
+6. Strategic Watchouts (Risks, tensions, blind spots)
+7. Decision-Maker Roles (Relevant CXOs/Marketing heads)
+8. Contact Intelligence (Emails, Phones, LinkedIn)
+9. Personalized Outreach (Email and LinkedIn draft leveraging outputs 4 and 6)
+10. Outreach Tracking Logic (Mechanism to track open rates)
+
+**Technical Stack:**
+*   **Frontend:** Next.js (App Router), React, Tailwind CSS, Lucide Icons.
+*   **Backend:** Python, FastAPI (serving a `/api/generate` endpoint).
+*   **Orchestration:** LangGraph (State Graphs for deterministic routing).
+*   **AI/LLM:** Ollama (local models like Llama 3) for heavy extraction/GraphRAG, and placeholder functions for cloud APIs (OpenAI/Groq).
+*   **Graph/RAG:** `networkx` for ephemeral in-memory knowledge graph construction.
+*   **Scraping:** Placeholders/Mock data for Tavily API and Firecrawl to ensure local testing works immediately without API key blockers.
+
+**Critical Architectural Rules (Strict Adherence Required):**
+1.  **Zero Hallucination Guardrail:** For Outputs 7 & 8 (Contacts), if the mock API does not return an exact email/phone number, the agent must explicitly output: `"Verified Data Unavailable - Manual Extraction Required"`. Do not generate fake contacts.
+2.  **GraphRAG Implementation:** To generate Output 6 (Strategic Watchouts), the system must not use standard vector search. The `analysis_node` must use `networkx` to build a temporary Knowledge Graph from the scraped data (extracting Subject-Predicate-Object triplets) to deduce non-obvious market risks.
+3.  **Proof of Logic:** Output 10 must literally generate a mock `<img>` tracking pixel tag embedded within the email draft from Output 9.
+4.  **UI/UX:** The frontend must include a "Live Agent Terminal" component that shows mock real-time logs (e.g., `> Initializing Research Swarm...`, `> Building NetworkX Graph...`) while the API request is processing.
+
+**Target File Structure Plan:**
+```text
+/omnisense
+├── /frontend (Next.js)
+│   ├── /app/page.tsx (Main dashboard and input UI)
+│   ├── /components/AgentTerminal.tsx (Loading state logs)
+│   ├── /components/OutputDashboard.tsx (Grid layout for the 10 outputs)
+├── /backend (FastAPI)
+│   ├── main.py (API endpoints and CORS setup)
+│   ├── /omni_graph
+│   │   ├── state.py (LangGraph TypedDict definitions)
+│   │   ├── nodes.py (Logic for research, GraphRAG analysis, and outreach)
+│   │   ├── graph.py (LangGraph compilation and flow control)
+│   ├── /tools
+│   │   ├── mock_scrapers.py (Fake data returns for initial testing)
+```
+
+**Execution Instructions:**
+Do not attempt to write the entire codebase in a single response, as it will lead to truncated and broken code. Acknowledge these instructions, confirm your understanding of the Zero Hallucination and GraphRAG rules, and then execute the build strictly in the following phases. Pause after each phase and wait for my command to proceed.
+
+*   **Phase 1:** Generate the complete Backend Python structure: `state.py`, `graph.py`, and `tools/mock_scrapers.py`.
+*   **Phase 2:** Generate the complete `nodes.py` file. This must include the exact system prompts you will send to the local Ollama model to extract triplets for NetworkX and format the outreach.
+*   **Phase 3:** Generate `main.py` to link the LangGraph to a FastAPI endpoint.
+*   **Phase 4:** Generate the Next.js Frontend files, complete with Tailwind styling and the Agent Terminal loading state.
+
+Are you ready to begin Phase 1?
