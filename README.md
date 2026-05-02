@@ -81,7 +81,7 @@ Under the hood, a **multi-agent pipeline** fires 5 parallel DuckDuckGo searches 
 
 ## Live Demo
 
-> **[omnisense.replit.app](https://omnisense.replit.app)**
+> **[https://blueprint-master--muthukumarankcs.replit.app/](https://blueprint-master--muthukumarankcs.replit.app/)**
 
 Enter any company name and sector. A full intelligence report is generated in ~90 seconds using live web data + NVIDIA AI synthesis. No account required.
 
