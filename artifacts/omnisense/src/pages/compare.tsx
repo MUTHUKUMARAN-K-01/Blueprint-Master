@@ -1,7 +1,8 @@
 import { useListReports, useGetReport } from "@workspace/api-client-react";
 import { Link } from "wouter";
 import { useState } from "react";
-import { ChevronDown, ArrowRightLeft } from "lucide-react";
+import { ChevronDown, ArrowRightLeft, Zap } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function Compare() {
   const { data: reports, isLoading: isLoadingList } = useListReports();
@@ -15,121 +16,145 @@ export default function Compare() {
   const r2 = r2Data?.report;
 
   return (
-    <div className="min-h-[100dvh] bg-[#f5f5f7] flex flex-col w-full pb-20">
-      
-      {/* Hero Section */}
-      <section className="w-full bg-white py-[60px] px-4 border-b border-[#d2d2d7]">
-        <div className="max-w-[1440px] mx-auto text-center">
-          <h1 className="text-[40px] font-[600] tracking-[-0.2px] text-[#1d1d1f] leading-tight mb-2">
+    <div className="min-h-[100dvh] flex flex-col w-full pb-24" style={{ background: '#050510' }}>
+
+      {/* Orbs */}
+      <div className="orb" style={{ width: 500, height: 500, top: -100, left: -100, background: 'radial-gradient(circle, rgba(124,58,237,0.3), transparent 70%)', animation: 'float 10s ease-in-out infinite' }} />
+      <div className="orb" style={{ width: 400, height: 400, top: '30%', right: -80, background: 'radial-gradient(circle, rgba(6,182,212,0.25), transparent 70%)', animation: 'drift 12s ease-in-out infinite' }} />
+      <div className="orb" style={{ width: 300, height: 300, bottom: 100, left: '40%', background: 'radial-gradient(circle, rgba(236,72,153,0.2), transparent 70%)', animation: 'float-alt 14s ease-in-out infinite' }} />
+
+      {/* Hero */}
+      <section className="relative z-10 w-full px-6 pt-20 pb-12 text-center">
+        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+          <p className="section-label mb-4">Side-by-Side Analysis</p>
+          <h1 className="text-[52px] font-[800] leading-tight mb-4 gradient-text">
             Compare Intelligence
           </h1>
-          <p className="text-[17px] text-[#6e6e73] mb-8">
-            Select two reports to analyze side-by-side.
+          <p className="text-[18px] mb-12" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            Select two reports to reveal intelligence differentials.
           </p>
 
           <div className="flex flex-col md:flex-row items-center justify-center gap-4 max-w-[800px] mx-auto">
+            {/* Selector A */}
             <div className="relative w-full">
               <select
-                className="w-full h-[54px] px-6 appearance-none rounded-full border border-[#d2d2d7] bg-[#f5f5f7] text-[17px] font-[600] focus:outline-none focus:border-[#0066cc] cursor-pointer"
+                className="glass-select"
+                style={{ borderColor: report1Id ? 'rgba(124,58,237,0.5)' : 'rgba(255,255,255,0.14)' }}
                 value={report1Id || ""}
-                onChange={(e) => setReport1Id(Number(e.target.value))}
+                onChange={(e) => setReport1Id(Number(e.target.value) || null)}
               >
-                <option value="" disabled>Select Company A</option>
+                <option value="">Select Company A</option>
                 {reports?.map(r => (
                   <option key={r.id} value={r.id} disabled={r.id === report2Id}>{r.companyName}</option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 h-5 w-5 text-[#6e6e73] pointer-events-none" />
-            </div>
-            
-            <div className="shrink-0 bg-white p-2 rounded-full border border-[#d2d2d7] shadow-sm z-10 md:-mx-8">
-              <ArrowRightLeft className="h-5 w-5 text-[#0066cc]" />
+              <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'rgba(255,255,255,0.35)' }} />
             </div>
 
+            <div className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center glass-card z-10">
+              <ArrowRightLeft className="h-4 w-4" style={{ color: '#a78bfa' }} />
+            </div>
+
+            {/* Selector B */}
             <div className="relative w-full">
               <select
-                className="w-full h-[54px] px-6 appearance-none rounded-full border border-[#d2d2d7] bg-[#f5f5f7] text-[17px] font-[600] focus:outline-none focus:border-[#0066cc] cursor-pointer"
+                className="glass-select"
+                style={{ borderColor: report2Id ? 'rgba(6,182,212,0.5)' : 'rgba(255,255,255,0.14)' }}
                 value={report2Id || ""}
-                onChange={(e) => setReport2Id(Number(e.target.value))}
+                onChange={(e) => setReport2Id(Number(e.target.value) || null)}
               >
-                <option value="" disabled>Select Company B</option>
+                <option value="">Select Company B</option>
                 {reports?.map(r => (
                   <option key={r.id} value={r.id} disabled={r.id === report1Id}>{r.companyName}</option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 h-5 w-5 text-[#6e6e73] pointer-events-none" />
+              <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: 'rgba(255,255,255,0.35)' }} />
             </div>
           </div>
-        </div>
+        </motion.div>
       </section>
 
-      {/* Comparison Area */}
-      <section className="flex-1 w-full max-w-[1440px] mx-auto px-4 mt-12">
+      {/* Comparison area */}
+      <section className="relative z-10 flex-1 w-full max-w-[1400px] mx-auto px-6">
         {(!r1 || !r2) ? (
-          <div className="text-center py-20">
-            <p className="text-[17px] text-[#6e6e73]">Select two companies above to begin comparison.</p>
-          </div>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="glass-card p-10 max-w-sm">
+              <ArrowRightLeft className="h-10 w-10 mx-auto mb-4" style={{ color: 'rgba(124,58,237,0.6)' }} />
+              <p className="text-[16px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                Select two companies above to begin side-by-side comparison.
+              </p>
+            </div>
+          </motion.div>
         ) : (
-          <div className="space-y-12">
-            
-            {/* Headers */}
-            <div className="grid grid-cols-2 gap-6 md:gap-12 sticky top-[96px] bg-[#f5f5f7]/90 backdrop-blur-md py-4 z-30">
-              <div className="apple-card !border-t-4 !border-t-[#0066cc]">
-                <h2 className="text-[34px] font-[600] tracking-[-0.374px] text-[#1d1d1f] truncate">{r1.companyName}</h2>
-                <span className="text-[12px] font-[600] text-[#6e6e73] uppercase">{r1.category}</span>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="space-y-8 pb-12">
+
+            {/* Column headers */}
+            <div className="grid grid-cols-2 gap-6 sticky top-[68px] z-30 py-4" style={{ background: 'rgba(5,5,16,0.85)', backdropFilter: 'blur(20px)' }}>
+              <div className="glass-card-glow p-5" style={{ borderLeftWidth: 2, borderLeftColor: 'rgba(124,58,237,0.7)' }}>
+                <div className="section-label mb-1">Company A</div>
+                <h2 className="text-[28px] font-[800] truncate" style={{ background: 'linear-gradient(135deg, #a78bfa, #60a5fa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{r1.companyName}</h2>
+                <span className="text-[12px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.35)', color: '#a78bfa' }}>{r1.category}</span>
               </div>
-              <div className="apple-card !border-t-4 !border-t-[#0066cc]">
-                <h2 className="text-[34px] font-[600] tracking-[-0.374px] text-[#1d1d1f] truncate">{r2.companyName}</h2>
-                <span className="text-[12px] font-[600] text-[#6e6e73] uppercase">{r2.category}</span>
+              <div className="glass-card-glow p-5" style={{ borderLeftWidth: 2, borderLeftColor: 'rgba(6,182,212,0.7)' }}>
+                <div className="section-label mb-1">Company B</div>
+                <h2 className="text-[28px] font-[800] truncate" style={{ background: 'linear-gradient(135deg, #22d3ee, #60a5fa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{r2.companyName}</h2>
+                <span className="text-[12px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(6,182,212,0.15)', border: '1px solid rgba(6,182,212,0.35)', color: '#22d3ee' }}>{r2.category}</span>
               </div>
             </div>
 
-            {/* Rows */}
-            <ComparisonRow title="Company Overview">
-              <p className="text-[17px] leading-relaxed whitespace-pre-wrap">{r1.companyOverview}</p>
-              <p className="text-[17px] leading-relaxed whitespace-pre-wrap">{r2.companyOverview}</p>
+            <ComparisonRow title="Company Overview" colorA="rgba(124,58,237,0.6)" colorB="rgba(6,182,212,0.6)">
+              <p className="text-[15px] leading-relaxed whitespace-pre-wrap" style={{ color: 'rgba(255,255,255,0.75)' }}>{r1.companyOverview}</p>
+              <p className="text-[15px] leading-relaxed whitespace-pre-wrap" style={{ color: 'rgba(255,255,255,0.75)' }}>{r2.companyOverview}</p>
             </ComparisonRow>
 
-            <ComparisonRow title="Market Position">
-              <p className="text-[17px] leading-relaxed whitespace-pre-wrap">{r1.marketPosition}</p>
-              <p className="text-[17px] leading-relaxed whitespace-pre-wrap">{r2.marketPosition}</p>
+            <ComparisonRow title="Market Position" colorA="rgba(124,58,237,0.6)" colorB="rgba(6,182,212,0.6)">
+              <p className="text-[15px] leading-relaxed whitespace-pre-wrap" style={{ color: 'rgba(255,255,255,0.75)' }}>{r1.marketPosition}</p>
+              <p className="text-[15px] leading-relaxed whitespace-pre-wrap" style={{ color: 'rgba(255,255,255,0.75)' }}>{r2.marketPosition}</p>
             </ComparisonRow>
 
-            <ComparisonRow title="Strategic Watchouts">
-              <div className="bg-[#ff3b30]/5 p-4 rounded-[12px] border border-[#ff3b30]/20">
-                <p className="text-[17px] leading-relaxed whitespace-pre-wrap text-[#1d1d1f]">{r1.strategicWatchouts}</p>
+            <ComparisonRow title="Strategic Watchouts" colorA="rgba(239,68,68,0.5)" colorB="rgba(239,68,68,0.5)">
+              <div className="p-4 rounded-xl" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                <p className="text-[15px] leading-relaxed whitespace-pre-wrap" style={{ color: 'rgba(255,255,255,0.75)' }}>{r1.strategicWatchouts}</p>
               </div>
-              <div className="bg-[#ff3b30]/5 p-4 rounded-[12px] border border-[#ff3b30]/20">
-                <p className="text-[17px] leading-relaxed whitespace-pre-wrap text-[#1d1d1f]">{r2.strategicWatchouts}</p>
+              <div className="p-4 rounded-xl" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                <p className="text-[15px] leading-relaxed whitespace-pre-wrap" style={{ color: 'rgba(255,255,255,0.75)' }}>{r2.strategicWatchouts}</p>
               </div>
             </ComparisonRow>
 
-            <ComparisonRow title="Brand Activity">
-              <p className="text-[17px] leading-relaxed whitespace-pre-wrap">{r1.brandActivity}</p>
-              <p className="text-[17px] leading-relaxed whitespace-pre-wrap">{r2.brandActivity}</p>
+            <ComparisonRow title="Brand Activity" colorA="rgba(236,72,153,0.5)" colorB="rgba(236,72,153,0.5)">
+              <p className="text-[15px] leading-relaxed whitespace-pre-wrap" style={{ color: 'rgba(255,255,255,0.75)' }}>{r1.brandActivity}</p>
+              <p className="text-[15px] leading-relaxed whitespace-pre-wrap" style={{ color: 'rgba(255,255,255,0.75)' }}>{r2.brandActivity}</p>
             </ComparisonRow>
 
-            <div className="text-center pt-12">
-              <Link href="/" className="btn-primary">
-                Start New Report
+            <div className="text-center pt-8">
+              <Link href="/" className="btn-primary no-underline">
+                <Zap className="h-4 w-4" /> Start New Report
               </Link>
             </div>
-
-          </div>
+          </motion.div>
         )}
       </section>
     </div>
   );
 }
 
-function ComparisonRow({ title, children }: { title: string, children: [React.ReactNode, React.ReactNode] }) {
+function ComparisonRow({ title, children, colorA, colorB }: { title: string; children: [React.ReactNode, React.ReactNode]; colorA: string; colorB: string }) {
   return (
-    <div>
-      <h3 className="text-[14px] font-[600] text-[#6e6e73] uppercase tracking-wider mb-4 px-2">{title}</h3>
-      <div className="grid grid-cols-2 gap-6 md:gap-12">
-        <div className="apple-card !p-6 h-full">{children[0]}</div>
-        <div className="apple-card !p-6 h-full">{children[1]}</div>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.5 }}
+    >
+      <p className="section-label mb-4 px-1">{title}</p>
+      <div className="grid grid-cols-2 gap-6">
+        <div className="glass-card p-6 h-full" style={{ borderLeftWidth: 2, borderLeftColor: colorA }}>
+          {children[0]}
+        </div>
+        <div className="glass-card p-6 h-full" style={{ borderLeftWidth: 2, borderLeftColor: colorB }}>
+          {children[1]}
+        </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

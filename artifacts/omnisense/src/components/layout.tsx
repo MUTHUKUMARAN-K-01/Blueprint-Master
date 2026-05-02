@@ -1,47 +1,63 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
+import { motion } from "framer-motion";
+import { Sparkles } from "lucide-react";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
 
-  const getPageTitle = () => {
-    if (location === "/") return "Intelligence";
-    if (location === "/history") return "Archive";
-    if (location === "/compare") return "Compare";
-    if (location.startsWith("/report/")) return "Report Viewer";
-    if (location.startsWith("/generating")) return "Generating";
-    return "Omnisense";
-  };
+  const navLinks = [
+    { href: "/", label: "Intelligence" },
+    { href: "/history", label: "History" },
+    { href: "/compare", label: "Compare" },
+  ];
 
   return (
-    <div className="min-h-[100dvh] bg-white flex flex-col">
-      {/* Global Nav */}
-      <header className="h-[44px] bg-[#000000] text-white flex items-center justify-between px-4 z-50">
-        <Link href="/" className="text-[14px] font-[600] tracking-tight hover:opacity-80 transition-opacity">
-          Omnisense
+    <div className="min-h-[100dvh] flex flex-col" style={{ background: '#050510' }}>
+      <motion.header
+        initial={{ y: -60, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="h-[60px] sticky top-0 z-50 flex items-center justify-between px-6"
+        style={{
+          background: 'rgba(5,5,16,0.85)',
+          backdropFilter: 'blur(24px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+          borderBottom: '1px solid rgba(255,255,255,0.07)',
+        }}
+      >
+        <Link href="/" className="flex items-center gap-2 no-underline">
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #7c3aed, #06b6d4)' }}>
+            <Sparkles className="w-4 h-4 text-white" />
+          </div>
+          <span className="text-[15px] font-[700] tracking-tight gradient-text">OMNISENSE</span>
         </Link>
-        <nav className="flex items-center gap-[20px] text-[12px] tracking-[-0.12px]">
-          <Link href="/" className={`hover:opacity-80 transition-opacity ${location === "/" ? "opacity-100 font-semibold" : "opacity-80"}`}>
-            Intelligence
-          </Link>
-          <Link href="/history" className={`hover:opacity-80 transition-opacity ${location === "/history" ? "opacity-100 font-semibold" : "opacity-80"}`}>
-            History
-          </Link>
-          <Link href="/compare" className={`hover:opacity-80 transition-opacity ${location === "/compare" ? "opacity-100 font-semibold" : "opacity-80"}`}>
-            Compare
-          </Link>
-        </nav>
-      </header>
 
-      {/* Sub-nav (Frosted) */}
-      <div className="h-[52px] frosted sticky top-0 z-40 flex items-center justify-between px-4 sm:px-8 border-b border-[#00000008]">
-        <div className="text-[21px] font-[600] text-[#1d1d1f] tracking-tight">
-          {getPageTitle()}
-        </div>
-        <Link href="/" className="btn-primary !text-[14px] !px-4 !py-1.5 h-8">
-          New Report
+        <nav className="hidden md:flex items-center gap-1">
+          {navLinks.map(({ href, label }) => {
+            const active = location === href || (href !== "/" && location.startsWith(href));
+            return (
+              <Link key={href} href={href} className="no-underline">
+                <span
+                  className="px-4 py-1.5 rounded-full text-[13px] font-[500] transition-all duration-200"
+                  style={{
+                    background: active ? 'rgba(124,58,237,0.2)' : 'transparent',
+                    border: active ? '1px solid rgba(124,58,237,0.45)' : '1px solid transparent',
+                    color: active ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.5)',
+                    display: 'inline-block',
+                  }}
+                >
+                  {label}
+                </span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        <Link href="/" className="btn-primary !py-2 !px-5 !text-[13px] no-underline">
+          + New Report
         </Link>
-      </div>
+      </motion.header>
 
       <main className="flex-1 flex flex-col">
         {children}
