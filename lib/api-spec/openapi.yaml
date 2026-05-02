@@ -3,13 +3,17 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Project Omnisense Market Intelligence Engine API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: intelligence
+    description: Market intelligence generation
+  - name: reports
+    description: Saved intelligence reports
 paths:
   /healthz:
     get:
@@ -24,6 +28,81 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /intelligence/generate:
+    post:
+      operationId: generateIntelligence
+      tags: [intelligence]
+      summary: Generate market intelligence report
+      description: Triggers the multi-agent workflow to generate a full intelligence report for a company
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateIntelligenceBody"
+      responses:
+        "200":
+          description: Generated intelligence report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IntelligenceReport"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /reports:
+    get:
+      operationId: listReports
+      tags: [reports]
+      summary: List saved intelligence reports
+      description: Returns all previously generated intelligence reports
+      responses:
+        "200":
+          description: List of reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReportSummary"
+
+  /reports/{id}:
+    get:
+      operationId: getReport
+      tags: [reports]
+      summary: Get a specific intelligence report
+      description: Returns the full intelligence report by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Full intelligence report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportDetail"
+        "404":
+          description: Report not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +113,178 @@ components:
       required:
         - status
 
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required:
+        - error
+        - message
+
+    GenerateIntelligenceBody:
+      type: object
+      properties:
+        companyName:
+          type: string
+          description: Name of the target company
+        category:
+          type: string
+          description: One-line description of the company's industry/category
+      required:
+        - companyName
+        - category
+
+    CompetitorItem:
+      type: object
+      properties:
+        name:
+          type: string
+        strengths:
+          type: string
+        gaps:
+          type: string
+      required:
+        - name
+        - strengths
+        - gaps
+
+    DecisionMakerRole:
+      type: object
+      properties:
+        title:
+          type: string
+        rationale:
+          type: string
+      required:
+        - title
+        - rationale
+
+    ContactRecord:
+      type: object
+      properties:
+        name:
+          type: string
+        title:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        linkedin:
+          type: string
+        verified:
+          type: boolean
+      required:
+        - name
+        - title
+        - verified
+
+    OutreachDraft:
+      type: object
+      properties:
+        linkedinMessage:
+          type: string
+        emailSubject:
+          type: string
+        emailBody:
+          type: string
+        trackingPixelHtml:
+          type: string
+        trackingLogicExplanation:
+          type: string
+      required:
+        - linkedinMessage
+        - emailSubject
+        - emailBody
+        - trackingPixelHtml
+        - trackingLogicExplanation
+
+    IntelligenceReport:
+      type: object
+      properties:
+        companyName:
+          type: string
+        category:
+          type: string
+        companyOverview:
+          type: string
+        marketPosition:
+          type: string
+        competitorMapping:
+          type: array
+          items:
+            $ref: "#/components/schemas/CompetitorItem"
+        brandActivity:
+          type: string
+        experientialFootprint:
+          type: string
+        strategicWatchouts:
+          type: string
+        decisionMakerRoles:
+          type: array
+          items:
+            $ref: "#/components/schemas/DecisionMakerRole"
+        contactIntelligence:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContactRecord"
+        outreach:
+          $ref: "#/components/schemas/OutreachDraft"
+        generatedAt:
+          type: string
+          format: date-time
+      required:
+        - companyName
+        - category
+        - companyOverview
+        - marketPosition
+        - competitorMapping
+        - brandActivity
+        - experientialFootprint
+        - strategicWatchouts
+        - decisionMakerRoles
+        - contactIntelligence
+        - outreach
+        - generatedAt
+
+    ReportSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        companyName:
+          type: string
+        category:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - companyName
+        - category
+        - createdAt
+
+    ReportDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        companyName:
+          type: string
+        category:
+          type: string
+        report:
+          $ref: "#/components/schemas/IntelligenceReport"
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - companyName
+        - category
+        - report
+        - createdAt

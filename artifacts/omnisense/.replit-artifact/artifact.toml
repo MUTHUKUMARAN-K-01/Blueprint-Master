@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Project Omnisense"
+version = "1.0.0"
+id = "artifacts/omnisense"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24830
+
+[services.development]
+run = "pnpm --filter @workspace/omnisense run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/omnisense", "run", "build" ]
+publicDir = "artifacts/omnisense/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24830"
+BASE_PATH = "/"
