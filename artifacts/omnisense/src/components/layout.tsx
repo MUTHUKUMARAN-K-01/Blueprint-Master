@@ -27,9 +27,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         }}
       >
         <Link href="/" className="flex items-center gap-2 no-underline">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #7c3aed, #06b6d4)' }}>
-            <Sparkles className="w-4 h-4 text-white" />
-          </div>
+          <img
+            src={`${import.meta.env.BASE_URL}logo.png`}
+            alt="Omnisense"
+            className="w-8 h-8 rounded-lg object-cover"
+            style={{ filter: 'drop-shadow(0 0 6px rgba(124,58,237,0.6))' }}
+          />
           <span className="text-[15px] font-[700] tracking-tight gradient-text">OMNISENSE</span>
         </Link>
 

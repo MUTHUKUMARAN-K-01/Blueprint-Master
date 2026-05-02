@@ -1,0 +1,25 @@
+uploads = []
+
+[[generated]]
+id = "W3Q17ZN0UYIjuRJ87l5KA"
+uri = "file://attached_assets/omnisense-logo.png"
+type = "image"
+title = "omnisense logo"
+
+[[generated]]
+id = "5fZMiYeWcHszIkf7B5ZJt"
+uri = "file://attached_assets/omnisense-logo-wide.png"
+type = "image"
+title = "omnisense wide banner"
+
+[[outputs]]
+id = "OC_xQAq44Q8ED79SMMaai"
+uri = "file://attached_assets/omnisense-logo.png"
+type = "image"
+title = "Omnisense Logo"
+
+[[outputs]]
+id = "FkjzZbTI73RUhy3pUAuxK"
+uri = "file://README.md"
+type = "text"
+title = "README.md — Full Project Documentation"
