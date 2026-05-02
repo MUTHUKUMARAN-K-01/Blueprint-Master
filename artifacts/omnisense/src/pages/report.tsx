@@ -1,23 +1,16 @@
 import { useGetReport } from "@workspace/api-client-react";
-import { useParams } from "wouter";
+import { useParams, Link } from "wouter";
 import { motion } from "framer-motion";
 import { 
-  ShieldCheck, AlertTriangle, Users, Target, Activity, 
-  MapPin, Eye, Building, MessageSquare, Code 
+  Building, Target, Shield, Users, Mail, Copy, CheckCircle2
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 const container = {
   hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 }
-  }
+  show: { opacity: 1, transition: { staggerChildren: 0.08 } }
 };
-
 const item = {
   hidden: { opacity: 0, y: 20 },
   show: { opacity: 1, y: 0 }
@@ -26,27 +19,46 @@ const item = {
 export default function Report() {
   const params = useParams();
   const reportId = Number(params.id);
+  const { toast } = useToast();
+
+  const [activeTab, setActiveTab] = useState<"email" | "linkedin" | "pixel">("email");
 
   const { data, isLoading, error } = useGetReport(reportId, {
     query: { enabled: !!reportId, queryKey: ['/api/reports', reportId] as any }
   });
 
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied to clipboard",
+      description: "Content ready to paste.",
+    });
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href);
+    toast({
+      title: "Link copied",
+      description: "Report link is ready to share.",
+    });
+  };
+
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-12 w-64 bg-card" />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-48 w-full bg-card" />)}
-        </div>
+      <div className="p-8 flex justify-center mt-20">
+        <div className="animate-spin w-8 h-8 rounded-full border-4 border-[#f5f5f7] border-t-[#0066cc]" />
       </div>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="text-center py-20 text-destructive font-mono">
-        <AlertTriangle className="h-10 w-10 mx-auto mb-4" />
-        <h2 className="text-xl font-bold">Failed to load report</h2>
+      <div className="p-8 text-center mt-20">
+        <h2 className="text-[21px] font-[600] text-[#ff3b30]">Failed to load report</h2>
       </div>
     );
   }
@@ -54,235 +66,289 @@ export default function Report() {
   const { report } = data;
 
   return (
-    <div className="space-y-8 pb-10">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-border/50 pb-6">
-        <div>
-          <h1 className="text-4xl font-black font-sans tracking-tight mb-2 uppercase">
-            {report.companyName}
-          </h1>
+    <div className="bg-white min-h-screen pb-[120px]">
+      
+      {/* Report Header (Dark Tile) */}
+      <section className="bg-[#1d1d1f] w-full px-4 py-[80px] text-white">
+        <div className="max-w-[1440px] mx-auto flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div>
+            <div className="text-[#2997ff] text-[12px] font-[600] uppercase tracking-wider mb-2">Intelligence Report</div>
+            <h1 className="text-[56px] font-[600] tracking-[-0.28px] leading-tight mb-4">
+              {report.companyName}
+            </h1>
+            <div className="flex items-center gap-3">
+              <span className="border border-[#2997ff] text-[#2997ff] px-3 py-1 rounded-full text-[14px] font-[600]">
+                {report.category}
+              </span>
+              <span className="text-[12px] text-white/50">
+                Generated: {new Date(report.generatedAt).toLocaleString()}
+              </span>
+            </div>
+          </div>
           <div className="flex items-center gap-3">
-            <Badge variant="outline" className="font-mono text-primary border-primary/30 rounded-sm">
-              {report.category}
-            </Badge>
-            <span className="text-xs font-mono text-muted-foreground">
-              Generated: {new Date(report.generatedAt).toLocaleString()}
-            </span>
+            <button onClick={() => handleCopy(JSON.stringify(report, null, 2))} className="btn-ghost !text-white hover:!bg-white/10">
+              Copy JSON
+            </button>
+            <button onClick={handlePrint} className="btn-ghost !text-white hover:!bg-white/10">
+              Print
+            </button>
+            <Link href="/" className="btn-primary !bg-[#2997ff] !text-[#1d1d1f] font-[600]">
+              New Report
+            </Link>
           </div>
         </div>
-        <Badge variant="secondary" className="font-mono bg-primary/10 text-primary border-none text-xs">
-          <ShieldCheck className="h-3 w-3 mr-1" />
-          DATA VERIFIED
-        </Badge>
-      </div>
+      </section>
 
-      <motion.div 
-        variants={container}
-        initial="hidden"
-        animate="show"
-        className="grid grid-cols-1 lg:grid-cols-2 gap-6"
-      >
-        {/* 1. Company Overview */}
-        <motion.div variants={item} className="lg:col-span-2">
-          <Card className="bg-card/50 border-border">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 font-mono text-sm uppercase text-muted-foreground">
-                <Building className="h-4 w-4 text-primary" /> Company Overview
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm md:text-base leading-relaxed">{report.companyOverview}</p>
-            </CardContent>
-          </Card>
+      <motion.div variants={container} initial="hidden" animate="show" className="max-w-[1440px] mx-auto w-full px-4">
+        
+        {/* Section 1 — Overview (White) */}
+        <section className="py-[80px]">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <motion.div variants={item} className="apple-card relative group">
+              <button onClick={() => handleCopy(report.companyOverview)} className="absolute top-4 right-4 p-2 text-[#6e6e73] hover:text-[#0066cc] opacity-0 group-hover:opacity-100 transition-opacity">
+                <Copy className="h-4 w-4" />
+              </button>
+              <div className="flex items-center gap-2 mb-4 text-[#6e6e73] uppercase text-[12px] font-[600] tracking-wider">
+                <Building className="h-4 w-4" /> Company Overview
+              </div>
+              <p className="text-[17px] text-[#1d1d1f] leading-relaxed whitespace-pre-wrap">
+                {report.companyOverview}
+              </p>
+            </motion.div>
+            
+            <motion.div variants={item} className="apple-card relative group">
+              <button onClick={() => handleCopy(report.marketPosition)} className="absolute top-4 right-4 p-2 text-[#6e6e73] hover:text-[#0066cc] opacity-0 group-hover:opacity-100 transition-opacity">
+                <Copy className="h-4 w-4" />
+              </button>
+              <div className="flex items-center gap-2 mb-4 text-[#6e6e73] uppercase text-[12px] font-[600] tracking-wider">
+                <Target className="h-4 w-4" /> Market Position
+              </div>
+              <p className="text-[17px] text-[#1d1d1f] leading-relaxed whitespace-pre-wrap">
+                {report.marketPosition}
+              </p>
+            </motion.div>
+          </div>
+        </section>
+      </motion.div>
+
+      {/* Section 2 — Competitive Intelligence (Parchment) */}
+      <section className="w-full bg-[#f5f5f7] py-[80px] px-4">
+        <motion.div variants={container} initial="hidden" animate="show" className="max-w-[1440px] mx-auto">
+          <h3 className="text-[34px] font-[600] tracking-[-0.374px] text-[#1d1d1f] mb-8">Competitive Landscape</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {report.competitorMapping.map((comp, idx) => (
+              <motion.div variants={item} key={idx} className="apple-card relative">
+                <h4 className="text-[17px] font-[600] text-[#0066cc] mb-4">{comp.name}</h4>
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex items-center gap-2 text-[14px] font-[600] text-[#1d1d1f] mb-1">
+                      <div className="w-2 h-2 rounded-full bg-[#34c759]" /> Strengths
+                    </div>
+                    <p className="text-[14px] text-[#6e6e73] leading-relaxed">{comp.strengths}</p>
+                  </div>
+                  <div className="h-[1px] w-full bg-[#00000008] my-2" />
+                  <div>
+                    <div className="flex items-center gap-2 text-[14px] font-[600] text-[#1d1d1f] mb-1">
+                      <div className="w-2 h-2 rounded-full bg-[#ff3b30]" /> Gaps
+                    </div>
+                    <p className="text-[14px] text-[#6e6e73] leading-relaxed">{comp.gaps}</p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
         </motion.div>
+      </section>
 
-        {/* 2. Market Position */}
-        <motion.div variants={item}>
-          <Card className="bg-card/50 border-border h-full">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 font-mono text-sm uppercase text-muted-foreground">
-                <Target className="h-4 w-4 text-primary" /> Market Position
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm leading-relaxed">{report.marketPosition}</p>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* 3. Strategic Watchouts */}
-        <motion.div variants={item}>
-          <Card className="bg-card/50 border-destructive/20 h-full relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-2">
-              <Badge variant="outline" className="font-mono text-[10px] border-destructive/30 text-destructive">
-                GraphRAG Powered
-              </Badge>
+      {/* Section 3 — Brand & Presence (Dark) */}
+      <section className="w-full bg-[#1d1d1f] py-[80px] px-4 text-white">
+        <motion.div variants={container} initial="hidden" animate="show" className="max-w-[1440px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12">
+          <motion.div variants={item}>
+            <h3 className="text-[34px] font-[600] tracking-[-0.374px] mb-6">Brand Activity</h3>
+            <div className="pl-4 border-l-2 border-[#2997ff]">
+              <p className="text-[17px] text-white/80 leading-relaxed whitespace-pre-wrap">
+                {report.brandActivity}
+              </p>
             </div>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 font-mono text-sm uppercase text-muted-foreground">
-                <AlertTriangle className="h-4 w-4 text-destructive" /> Strategic Watchouts
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm leading-relaxed">{report.strategicWatchouts}</p>
-            </CardContent>
-          </Card>
+          </motion.div>
+          <motion.div variants={item}>
+            <h3 className="text-[34px] font-[600] tracking-[-0.374px] mb-6">Experiential Footprint</h3>
+            <div className="pl-4 border-l-2 border-[#2997ff]">
+              <p className="text-[17px] text-white/80 leading-relaxed whitespace-pre-wrap">
+                {report.experientialFootprint}
+              </p>
+            </div>
+          </motion.div>
         </motion.div>
+      </section>
 
-        {/* 4. Competitor Mapping */}
-        <motion.div variants={item} className="lg:col-span-2">
-          <Card className="bg-card/50 border-border">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 font-mono text-sm uppercase text-muted-foreground">
-                <Activity className="h-4 w-4 text-primary" /> Competitor Mapping
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {report.competitorMapping.map((comp, idx) => (
-                  <div key={idx} className="bg-background rounded border border-border/50 p-4">
-                    <h4 className="font-bold font-mono text-primary mb-2">{comp.name}</h4>
-                    <div className="space-y-2 text-xs">
-                      <div>
-                        <span className="text-muted-foreground font-mono">Strengths:</span>
-                        <p className="mt-1">{comp.strengths}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground font-mono">Gaps:</span>
-                        <p className="mt-1">{comp.gaps}</p>
-                      </div>
+      {/* Section 4 — Intelligence (White) */}
+      <section className="w-full bg-white py-[80px] px-4">
+        <motion.div variants={container} initial="hidden" animate="show" className="max-w-[1440px] mx-auto space-y-12">
+          
+          <motion.div variants={item} className="apple-card relative border-l-4 border-l-[#ff3b30] overflow-hidden group">
+            <button onClick={() => handleCopy(report.strategicWatchouts)} className="absolute top-4 right-4 p-2 text-[#6e6e73] hover:text-[#0066cc] opacity-0 group-hover:opacity-100 transition-opacity">
+              <Copy className="h-4 w-4" />
+            </button>
+            <div className="absolute top-4 right-16">
+              <span className="text-[12px] font-[600] text-[#ff3b30] bg-[#ff3b30]/10 px-2 py-1 rounded">GraphRAG™</span>
+            </div>
+            <div className="flex items-center gap-2 mb-4 text-[#ff3b30] uppercase text-[12px] font-[600] tracking-wider">
+              <Shield className="h-4 w-4" /> Strategic Watchouts
+            </div>
+            <p className="text-[17px] text-[#1d1d1f] leading-relaxed whitespace-pre-wrap max-w-4xl">
+              {report.strategicWatchouts}
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <motion.div variants={item}>
+              <h3 className="text-[21px] font-[600] text-[#1d1d1f] mb-6 flex items-center gap-2">
+                <Users className="h-5 w-5 text-[#0066cc]" /> Decision Maker Roles
+              </h3>
+              <div className="space-y-4">
+                {report.decisionMakerRoles.map((role, idx) => (
+                  <div key={idx} className="apple-card !p-4 flex gap-4">
+                    <div className="text-[14px] font-[600] text-[#0066cc] bg-[#0066cc]/10 h-8 w-8 rounded-full flex items-center justify-center shrink-0">
+                      {idx + 1}
+                    </div>
+                    <div>
+                      <h4 className="text-[17px] font-[600] text-[#1d1d1f] mb-1">{role.title}</h4>
+                      <p className="text-[14px] text-[#6e6e73] leading-relaxed">{role.rationale}</p>
                     </div>
                   </div>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* 5. Brand Activity & 6. Experiential Footprint */}
-        <motion.div variants={item} className="space-y-6">
-          <Card className="bg-card/50 border-border">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 font-mono text-sm uppercase text-muted-foreground">
-                <Eye className="h-4 w-4 text-primary" /> Brand Activity
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm leading-relaxed">{report.brandActivity}</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 font-mono text-sm uppercase text-muted-foreground">
-                <MapPin className="h-4 w-4 text-primary" /> Experiential Footprint
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm leading-relaxed">{report.experientialFootprint}</p>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* 7. Decision Makers & 8. Contact Intel */}
-        <motion.div variants={item} className="space-y-6">
-          <Card className="bg-card/50 border-border">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 font-mono text-sm uppercase text-muted-foreground">
-                <Target className="h-4 w-4 text-primary" /> Decision-Maker Roles
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {report.decisionMakerRoles.map((role, idx) => (
-                <div key={idx} className="flex flex-col gap-2 p-3 bg-background rounded border border-border/50">
-                  <h4 className="font-bold text-sm text-primary">{role.title}</h4>
-                  <p className="text-xs text-muted-foreground">{role.rationale}</p>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 font-mono text-sm uppercase text-muted-foreground">
-                <Users className="h-4 w-4 text-primary" /> Contact Intelligence
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {report.contactIntelligence.map((contact, idx) => (
-                <div key={idx} className="flex flex-col gap-2 p-3 bg-background rounded border border-border/50">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-bold text-sm">{contact.name}</h4>
-                      <p className="text-xs text-muted-foreground font-mono">{contact.title}</p>
-                    </div>
-                    {contact.verified ? (
-                      <Badge variant="outline" className="text-[10px] border-primary/50 text-primary">Verified</Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-[10px] border-destructive/50 text-destructive">Unverified</Badge>
-                    )}
-                  </div>
-                  <div className="text-xs font-mono space-y-1 text-muted-foreground">
-                    {contact.email && <div>Email: <span className="text-foreground">{contact.email}</span></div>}
-                    {contact.phone && <div>Phone: <span className="text-foreground">{contact.phone}</span></div>}
-                    {contact.linkedin && <div>LinkedIn: <a href={contact.linkedin} target="_blank" rel="noreferrer" className="text-primary hover:underline">Profile</a></div>}
-                    {(!contact.email && !contact.phone) && <div className="text-destructive/80 italic">Data Unavailable</div>}
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* 9. Outreach & 10. Pixel */}
-        <motion.div variants={item} className="lg:col-span-2">
-          <Card className="bg-card/50 border-border">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 font-mono text-sm uppercase text-muted-foreground">
-                <MessageSquare className="h-4 w-4 text-primary" /> Outreach Sequences & Tracking
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="email" className="w-full">
-                <TabsList className="grid w-full max-w-md grid-cols-3 bg-background border border-border/50 mb-4">
-                  <TabsTrigger value="email" className="font-mono text-xs">Email</TabsTrigger>
-                  <TabsTrigger value="linkedin" className="font-mono text-xs">LinkedIn</TabsTrigger>
-                  <TabsTrigger value="pixel" className="font-mono text-xs">Tracking Pixel</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="email" className="space-y-4">
-                  <div className="bg-background p-4 rounded border border-border/50">
-                    <div className="mb-2 text-xs font-mono text-muted-foreground border-b border-border/50 pb-2">
-                      <span className="text-primary">Subject:</span> {report.outreach.emailSubject}
-                    </div>
-                    <div className="text-sm whitespace-pre-wrap font-sans">{report.outreach.emailBody}</div>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="linkedin" className="space-y-4">
-                  <div className="bg-background p-4 rounded border border-border/50">
-                    <div className="text-sm whitespace-pre-wrap font-sans">{report.outreach.linkedinMessage}</div>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="pixel" className="space-y-4">
-                  <div className="bg-background p-4 rounded border border-border/50 space-y-4">
-                    <p className="text-sm text-muted-foreground">{report.outreach.trackingLogicExplanation}</p>
-                    <div className="relative">
-                      <div className="absolute top-2 right-2">
-                        <Code className="h-4 w-4 text-muted-foreground" />
+            </motion.div>
+            
+            <motion.div variants={item}>
+              <h3 className="text-[21px] font-[600] text-[#1d1d1f] mb-6 flex items-center gap-2">
+                <Mail className="h-5 w-5 text-[#0066cc]" /> Contact Intelligence
+              </h3>
+              <div className="space-y-4">
+                {report.contactIntelligence.map((contact, idx) => (
+                  <div key={idx} className="apple-card !p-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h4 className="text-[17px] font-[600] text-[#1d1d1f]">{contact.name}</h4>
+                        <p className="text-[14px] text-[#6e6e73]">{contact.title}</p>
                       </div>
-                      <pre className="bg-[#0a0a0a] p-4 rounded text-xs font-mono text-primary overflow-x-auto">
-                        <code>{report.outreach.trackingPixelHtml}</code>
-                      </pre>
+                      {contact.verified ? (
+                        <span className="flex items-center gap-1 text-[12px] text-[#34c759] font-[600] bg-[#34c759]/10 px-2 py-1 rounded">
+                          <CheckCircle2 className="h-3 w-3" /> Verified
+                        </span>
+                      ) : (
+                        <span className="text-[12px] text-[#6e6e73] bg-[#f5f5f7] px-2 py-1 rounded">
+                          Data Protected
+                        </span>
+                      )}
+                    </div>
+                    <div className="space-y-1 text-[14px]">
+                      {contact.email && <div className="text-[#1d1d1f]"><span className="text-[#6e6e73] mr-2">Email:</span>{contact.email}</div>}
+                      {contact.phone && <div className="text-[#1d1d1f]"><span className="text-[#6e6e73] mr-2">Phone:</span>{contact.phone}</div>}
+                      {contact.linkedin && <div><a href={contact.linkedin} target="_blank" rel="noreferrer" className="text-[#0066cc] hover:underline">LinkedIn Profile →</a></div>}
                     </div>
                   </div>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-        </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          </div>
 
-      </motion.div>
+        </motion.div>
+      </section>
+
+      {/* Section 5 — Outreach Center (Parchment) */}
+      <section className="w-full bg-[#f5f5f7] py-[80px] px-4">
+        <div className="max-w-[980px] mx-auto">
+          <h3 className="text-[34px] font-[600] tracking-[-0.374px] text-[#1d1d1f] mb-8 text-center">Personalized Outreach</h3>
+          
+          <div className="flex justify-center mb-6">
+            <div className="bg-[#e5e5ea] p-1 rounded-full flex gap-1">
+              <button 
+                onClick={() => setActiveTab("email")}
+                className={`px-6 py-2 rounded-full text-[14px] font-[600] transition-colors ${activeTab === "email" ? "bg-white text-[#1d1d1f] shadow-sm" : "text-[#6e6e73] hover:text-[#1d1d1f]"}`}
+              >
+                Email
+              </button>
+              <button 
+                onClick={() => setActiveTab("linkedin")}
+                className={`px-6 py-2 rounded-full text-[14px] font-[600] transition-colors ${activeTab === "linkedin" ? "bg-white text-[#1d1d1f] shadow-sm" : "text-[#6e6e73] hover:text-[#1d1d1f]"}`}
+              >
+                LinkedIn
+              </button>
+              <button 
+                onClick={() => setActiveTab("pixel")}
+                className={`px-6 py-2 rounded-full text-[14px] font-[600] transition-colors ${activeTab === "pixel" ? "bg-white text-[#1d1d1f] shadow-sm" : "text-[#6e6e73] hover:text-[#1d1d1f]"}`}
+              >
+                Tracking Pixel
+              </button>
+            </div>
+          </div>
+
+          <div className="apple-card relative min-h-[300px]">
+            {activeTab === "email" && (
+              <div className="animate-in fade-in zoom-in-95 duration-200">
+                <button onClick={() => handleCopy(`Subject: ${report.outreach.emailSubject}\n\n${report.outreach.emailBody}`)} className="absolute top-4 right-4 btn-primary !py-1.5 !px-4 !text-[14px]">
+                  Copy Draft
+                </button>
+                <div className="mb-6 pb-4 border-b border-[#00000008]">
+                  <span className="text-[#6e6e73] text-[14px] mr-2">Subject:</span>
+                  <span className="text-[#1d1d1f] font-[600]">{report.outreach.emailSubject}</span>
+                </div>
+                <div className="text-[17px] text-[#1d1d1f] leading-relaxed whitespace-pre-wrap font-sans">
+                  {report.outreach.emailBody}
+                </div>
+              </div>
+            )}
+            
+            {activeTab === "linkedin" && (
+              <div className="animate-in fade-in zoom-in-95 duration-200">
+                <button onClick={() => handleCopy(report.outreach.linkedinMessage)} className="absolute top-4 right-4 btn-primary !py-1.5 !px-4 !text-[14px]">
+                  Copy Message
+                </button>
+                <div className="mb-4 flex justify-between items-center">
+                  <span className="text-[12px] text-[#6e6e73] uppercase font-[600]">InMail Draft</span>
+                  <span className="text-[12px] text-[#6e6e73]">{report.outreach.linkedinMessage.length} chars</span>
+                </div>
+                <div className="text-[17px] text-[#1d1d1f] leading-relaxed whitespace-pre-wrap">
+                  {report.outreach.linkedinMessage}
+                </div>
+              </div>
+            )}
+
+            {activeTab === "pixel" && (
+              <div className="animate-in fade-in zoom-in-95 duration-200">
+                <button onClick={() => handleCopy(report.outreach.trackingPixelHtml)} className="absolute top-4 right-4 btn-primary !py-1.5 !px-4 !text-[14px]">
+                  Copy HTML
+                </button>
+                <p className="text-[14px] text-[#6e6e73] mb-4 pr-32">
+                  {report.outreach.trackingLogicExplanation}
+                </p>
+                <pre className="bg-[#1d1d1f] text-[#2997ff] p-4 rounded-[12px] overflow-x-auto text-[14px] font-mono">
+                  <code>{report.outreach.trackingPixelHtml}</code>
+                </pre>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Floating Sticky Bar */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 frosted rounded-full px-6 py-3 shadow-[0_8px_32px_rgba(0,0,0,0.1)] flex items-center gap-6 z-50">
+        <span className="font-[600] text-[#1d1d1f] max-w-[200px] truncate hidden md:block">
+          {report.companyName}
+        </span>
+        <div className="flex items-center gap-2">
+          <button onClick={handleShare} className="btn-ghost !text-[#1d1d1f] !py-2 !px-4">
+            Share
+          </button>
+          <Link href="/" className="btn-primary !py-2 !px-4 shadow-sm">
+            New Report
+          </Link>
+        </div>
+      </div>
+
     </div>
   );
 }

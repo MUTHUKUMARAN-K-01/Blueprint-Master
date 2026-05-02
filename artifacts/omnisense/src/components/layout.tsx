@@ -1,45 +1,49 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { Terminal, Clock, Activity } from "lucide-react";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
 
-  const navItems = [
-    { href: "/", label: "Terminal", icon: Terminal },
-    { href: "/history", label: "History", icon: Clock },
-  ];
+  const getPageTitle = () => {
+    if (location === "/") return "Intelligence";
+    if (location === "/history") return "Archive";
+    if (location === "/compare") return "Compare";
+    if (location.startsWith("/report/")) return "Report Viewer";
+    if (location.startsWith("/generating")) return "Generating";
+    return "Omnisense";
+  };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 h-14 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2" data-testid="link-home-logo">
-            <Activity className="h-5 w-5 text-primary" />
-            <span className="font-mono font-bold tracking-tight">OMNISENSE</span>
+    <div className="min-h-[100dvh] bg-white flex flex-col">
+      {/* Global Nav */}
+      <header className="h-[44px] bg-[#000000] text-white flex items-center justify-between px-4 z-50">
+        <Link href="/" className="text-[14px] font-[600] tracking-tight hover:opacity-80 transition-opacity">
+          Omnisense
+        </Link>
+        <nav className="flex items-center gap-[20px] text-[12px] tracking-[-0.12px]">
+          <Link href="/" className={`hover:opacity-80 transition-opacity ${location === "/" ? "opacity-100 font-semibold" : "opacity-80"}`}>
+            Intelligence
           </Link>
-          <nav className="flex items-center gap-6">
-            {navItems.map((item) => {
-              const isActive = location === item.href;
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center gap-2 text-sm font-mono transition-colors hover:text-primary ${
-                    isActive ? "text-primary" : "text-muted-foreground"
-                  }`}
-                  data-testid={`link-nav-${item.label.toLowerCase()}`}
-                >
-                  <Icon className="h-4 w-4" />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
+          <Link href="/history" className={`hover:opacity-80 transition-opacity ${location === "/history" ? "opacity-100 font-semibold" : "opacity-80"}`}>
+            History
+          </Link>
+          <Link href="/compare" className={`hover:opacity-80 transition-opacity ${location === "/compare" ? "opacity-100 font-semibold" : "opacity-80"}`}>
+            Compare
+          </Link>
+        </nav>
       </header>
-      <main className="flex-1 container mx-auto px-4 py-8">
+
+      {/* Sub-nav (Frosted) */}
+      <div className="h-[52px] frosted sticky top-0 z-40 flex items-center justify-between px-4 sm:px-8 border-b border-[#00000008]">
+        <div className="text-[21px] font-[600] text-[#1d1d1f] tracking-tight">
+          {getPageTitle()}
+        </div>
+        <Link href="/" className="btn-primary !text-[14px] !px-4 !py-1.5 h-8">
+          New Report
+        </Link>
+      </div>
+
+      <main className="flex-1 flex flex-col">
         {children}
       </main>
     </div>

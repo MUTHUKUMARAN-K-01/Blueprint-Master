@@ -2,12 +2,12 @@ import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useEffect } from "react";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Generating from "@/pages/generating";
 import Report from "@/pages/report";
 import History from "@/pages/history";
+import Compare from "@/pages/compare";
 import Layout from "@/components/layout";
 
 const queryClient = new QueryClient();
@@ -20,6 +20,7 @@ function Router() {
         <Route path="/generating" component={Generating} />
         <Route path="/report/:id" component={Report} />
         <Route path="/history" component={History} />
+        <Route path="/compare" component={Compare} />
         <Route component={NotFound} />
       </Switch>
     </Layout>
@@ -27,11 +28,6 @@ function Router() {
 }
 
 function App() {
-  // Force dark mode
-  useEffect(() => {
-    document.documentElement.classList.add("dark");
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
