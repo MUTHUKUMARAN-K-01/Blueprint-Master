@@ -28,6 +28,21 @@ async function searchWeb(query: string): Promise<string> {
   }
 }
 
+/** Robustly extract the first complete JSON object from a string that may
+ *  contain leading/trailing prose or markdown fences. */
+function extractJsonObject(raw: string): string {
+  // 1. Try markdown fence first
+  const fenceMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fenceMatch) return fenceMatch[1].trim();
+
+  // 2. Slice from first { to last }
+  const start = raw.indexOf("{");
+  const end = raw.lastIndexOf("}");
+  if (start !== -1 && end > start) return raw.slice(start, end + 1);
+
+  return raw.trim();
+}
+
 router.post("/intelligence/generate", async (req, res) => {
   const parsed = GenerateIntelligenceBody.safeParse(req.body);
   if (!parsed.success) {
@@ -66,46 +81,49 @@ ${leadershipResults}`;
 
     req.log.info({ companyName }, "Web research complete, calling NVIDIA minimax-m2.7");
 
-    const systemPrompt = `You are an elite B2B market intelligence analyst. You have just completed a live web research session on ${companyName} operating in the ${category} sector. Your job is to synthesize the real search data below into a precise, professional intelligence report used by enterprise sales teams.
+    const systemPrompt = `You are an elite B2B market intelligence analyst. You MUST respond with ONLY a raw JSON object. Your response must begin with { and end with }. No preamble, no explanation, no markdown fences, no trailing text of any kind.
+
+You have completed a live web research session on "${companyName}" in the "${category}" sector. Use the real search data below to produce a precise, professional intelligence report.
 
 LIVE WEB RESEARCH DATA:
 ${webContext}
 
-CRITICAL RULES:
-1. Reference specific, real facts from the search results — actual product names, real campaigns, real executive names, actual company details.
-2. Do NOT fabricate statistics, revenue figures, or specific contact details not found in the data.
-3. Strategic Watchouts must identify non-obvious, cross-domain risks that a less informed analyst would miss.
-4. Contact Intelligence: ONLY include executives actually found in the leadership search results with confirmed details. If none found, return the zero-hallucination placeholder object.
-5. Outreach copy must reference ${companyName}'s specific real campaigns and their actual competitive dynamics.
-6. Return ONLY valid JSON. No markdown fences, no code blocks, no commentary before or after.`;
+RULES:
+- Your entire response = one valid JSON object, nothing else.
+- Use specific real facts from the search data (product names, campaigns, executives, events).
+- Do not fabricate revenue figures or contact details not found in the data.
+- Strategic Watchouts must surface non-obvious, cross-domain risks.
+- Contact Intelligence: only include executives actually found in search results.`;
 
-    const userPrompt = `Generate a complete, deeply researched market intelligence report for ${companyName} (${category}).
+    const userPrompt = `Produce the JSON intelligence report for ${companyName} (${category}).
 
-Return ONLY a valid JSON object with exactly these keys:
+RESPOND WITH ONLY THIS JSON (replace all placeholder values with real researched data):
+
 {
-  "companyOverview": "3-4 sentences grounded in real search data — their business model, key products/services, scale, and strategic positioning",
-  "marketPosition": "3-4 sentences on their brand perception, competitive standing, recent market shifts, and momentum signals",
+  "companyOverview": "3-4 sentences: business model, key products/services, scale, strategic positioning — grounded in real search data",
+  "marketPosition": "3-4 sentences: brand perception, competitive standing, recent market shifts, momentum signals",
   "competitorMapping": [
-    {"name": "ActualCompetitorName", "strengths": "specific real strengths", "gaps": "specific real weaknesses"},
-    (3-4 real competitors from search results)
+    { "name": "Competitor1Name", "strengths": "specific real strengths from search", "gaps": "specific real weaknesses" },
+    { "name": "Competitor2Name", "strengths": "specific real strengths", "gaps": "specific real weaknesses" },
+    { "name": "Competitor3Name", "strengths": "specific real strengths", "gaps": "specific real weaknesses" }
   ],
-  "brandActivity": "3-4 sentences referencing specific real campaigns, product launches, or partnerships from the last 12-24 months found in search results",
-  "experientialFootprint": "3-4 sentences about real events, conferences, sponsorships, or experiential activations found in search results",
-  "strategicWatchouts": "3-4 sentences identifying 2-3 non-obvious strategic risks derived from the competitive landscape and market dynamics — cross-domain reasoning required",
+  "brandActivity": "3-4 sentences: specific real campaigns, product launches, or partnerships from last 12-24 months",
+  "experientialFootprint": "3-4 sentences: real events, conferences, sponsorships, or activations from search results",
+  "strategicWatchouts": "3-4 sentences: 2-3 non-obvious strategic risks from competitive landscape and market dynamics",
   "decisionMakerRoles": [
-    {"title": "Exact Job Title", "rationale": "specific reason this role controls the relevant budget or decision"},
-    (2-3 roles)
+    { "title": "Chief Revenue Officer", "rationale": "controls GTM budget and owns revenue targets" },
+    { "title": "VP of Sales", "rationale": "manages enterprise deals and vendor relationships" },
+    { "title": "Chief Marketing Officer", "rationale": "owns brand, campaign, and outreach budget" }
   ],
   "contactIntelligence": [
-    IF real executives were found in search: {"name": "Real Name", "title": "Real Title", "email": null, "phone": null, "linkedin": "URL if found or null", "verified": true}
-    IF no real contacts found: {"name": "Verified Data Unavailable - Manual Extraction Required", "title": "Verified Data Unavailable - Manual Extraction Required", "email": null, "phone": null, "linkedin": null, "verified": false}
+    { "name": "Real Executive Name from search or 'Verified Data Unavailable - Manual Extraction Required'", "title": "Real Title", "email": null, "phone": null, "linkedin": null, "verified": false }
   ],
   "outreach": {
-    "linkedinMessage": "3-sentence personalized LinkedIn outreach referencing a specific ${companyName} campaign or product and a strategic watchout",
-    "emailSubject": "Compelling subject line under 60 characters",
-    "emailBody": "4-5 paragraph cold email in first-person: paragraph 1 = warm opener referencing specific ${companyName} activity; paragraph 2 = bridge to their strategic risk; paragraph 3 = value proposition; paragraph 4 = social proof or insight; paragraph 5 = clear CTA. No placeholders like [Your Name].",
+    "linkedinMessage": "3-sentence personalized LinkedIn InMail referencing a specific ${companyName} initiative and a strategic risk",
+    "emailSubject": "Compelling cold email subject line under 60 characters",
+    "emailBody": "5-paragraph cold email — P1: warm opener referencing specific ${companyName} activity; P2: bridge to their strategic risk; P3: value proposition; P4: social proof or data point; P5: clear low-friction CTA. Write in first person. No placeholders.",
     "trackingPixelHtml": "<img src=\\"https://omnisense.app/track/open/PLACEHOLDER\\" width=\\"1\\" height=\\"1\\" style=\\"display:none\\" />",
-    "trackingLogicExplanation": "2-3 sentences on the tracking pixel webhook architecture and how open-rate data is captured and routed to the CRM."
+    "trackingLogicExplanation": "When the recipient opens the HTML email, the client silently loads the 1×1 pixel from the Omnisense tracking endpoint. The server logs the open timestamp, IP address, and user-agent, then fires a webhook to the CRM for real-time pipeline visibility."
   }
 }`;
 
@@ -115,7 +133,7 @@ Return ONLY a valid JSON object with exactly these keys:
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      temperature: 0.7,
+      temperature: 0.6,
       top_p: 0.9,
       max_tokens: 4096,
       stream: true,
@@ -130,14 +148,13 @@ Return ONLY a valid JSON object with exactly these keys:
 
     req.log.info({ companyName, rawLength: raw.length }, "AI response received");
 
-    const jsonMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
-    const jsonStr = jsonMatch ? jsonMatch[1] : raw;
-
     let aiOutput: Record<string, unknown>;
     try {
-      aiOutput = JSON.parse(jsonStr.trim());
-    } catch {
-      req.log.warn({ raw: raw.slice(0, 500) }, "Failed to parse AI JSON, using fallback");
+      const jsonStr = extractJsonObject(raw);
+      aiOutput = JSON.parse(jsonStr);
+      req.log.info({ companyName, fields: Object.keys(aiOutput).length }, "AI JSON parsed successfully");
+    } catch (parseErr) {
+      req.log.warn({ companyName, rawPreview: raw.slice(0, 500), parseErr }, "Failed to parse AI JSON, using fallback");
       aiOutput = {};
     }
 
@@ -188,7 +205,7 @@ Return ONLY a valid JSON object with exactly these keys:
         trackingPixelHtml: `<img src="https://omnisense.app/track/open/${trackingId}" width="1" height="1" style="display:none" />`,
         trackingLogicExplanation:
           outreach?.trackingLogicExplanation ??
-          "When the recipient opens the HTML email, their client silently loads the 1x1 pixel from the tracking endpoint. The server logs the timestamp, IP address, and user-agent, then fires a webhook to your CRM for real-time open-rate visibility.",
+          "When the recipient opens the HTML email, their client silently loads the 1×1 pixel from the tracking endpoint. The server logs the timestamp, IP address, and user-agent, then fires a webhook to your CRM for real-time open-rate visibility.",
       },
       generatedAt: new Date().toISOString(),
     };
