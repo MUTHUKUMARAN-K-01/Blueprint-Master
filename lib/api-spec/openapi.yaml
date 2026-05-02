@@ -205,6 +205,9 @@ components:
     IntelligenceReport:
       type: object
       properties:
+        id:
+          type: integer
+          description: Saved report ID for direct navigation
         companyName:
           type: string
         category:
@@ -237,6 +240,7 @@ components:
           type: string
           format: date-time
       required:
+        - id
         - companyName
         - category
         - companyOverview

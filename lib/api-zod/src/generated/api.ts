@@ -27,6 +27,7 @@ export const GenerateIntelligenceBody = zod.object({
 });
 
 export const GenerateIntelligenceResponse = zod.object({
+  id: zod.number().describe("Saved report ID for direct navigation"),
   companyName: zod.string(),
   category: zod.string(),
   companyOverview: zod.string(),
@@ -92,6 +93,7 @@ export const GetReportResponse = zod.object({
   companyName: zod.string(),
   category: zod.string(),
   report: zod.object({
+    id: zod.number().describe("Saved report ID for direct navigation"),
     companyName: zod.string(),
     category: zod.string(),
     companyOverview: zod.string(),

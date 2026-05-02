@@ -50,6 +50,8 @@ export interface OutreachDraft {
 }
 
 export interface IntelligenceReport {
+  /** Saved report ID for direct navigation */
+  id: number;
   companyName: string;
   category: string;
   companyOverview: string;

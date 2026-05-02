@@ -1,100 +1,31 @@
 import { Router, type IRouter } from "express";
 import { db, reportsTable } from "@workspace/db";
 import { GenerateIntelligenceBody } from "@workspace/api-zod";
-import { openai } from "@workspace/integrations-openai-ai-server";
+import OpenAI from "openai";
+import { search, SafeSearchType } from "duck-duck-scrape";
 
 const router: IRouter = Router();
+
+const nvidiaClient = new OpenAI({
+  baseURL: "https://integrate.api.nvidia.com/v1",
+  apiKey: process.env.NVIDIA_API_KEY ?? "",
+});
 
 function generateTrackingId(): string {
   return Math.random().toString(36).substring(2, 10).toUpperCase();
 }
 
-function buildMockScraperData(companyName: string, category: string) {
-  const competitors: string[] = [];
-  const categoryLower = category.toLowerCase();
-
-  if (categoryLower.includes("saas") || categoryLower.includes("software")) {
-    competitors.push("Salesforce", "HubSpot", "Zendesk", "Freshworks", "Monday.com");
-  } else if (categoryLower.includes("fintech") || categoryLower.includes("finance")) {
-    competitors.push("Stripe", "Square", "Brex", "Plaid", "Adyen");
-  } else if (categoryLower.includes("ecommerce") || categoryLower.includes("retail")) {
-    competitors.push("Shopify", "BigCommerce", "WooCommerce", "Magento", "Wix");
-  } else if (categoryLower.includes("health") || categoryLower.includes("medical")) {
-    competitors.push("Epic Systems", "Cerner", "Veeva Systems", "Health Catalyst", "Meditech");
-  } else if (categoryLower.includes("ai") || categoryLower.includes("ml")) {
-    competitors.push("OpenAI", "Anthropic", "Cohere", "Scale AI", "Hugging Face");
-  } else {
-    competitors.push("Legacy Market Leader", "VC-Backed Challenger", "Enterprise Giant", "Niche Specialist", "International Player");
+async function searchWeb(query: string): Promise<string> {
+  try {
+    const results = await search(query, { safeSearch: SafeSearchType.OFF });
+    if (!results?.results?.length) return "(no results found)";
+    return results.results
+      .slice(0, 6)
+      .map((r) => `- ${r.title}: ${r.description ?? ""}`)
+      .join("\n");
+  } catch {
+    return "(search unavailable)";
   }
-
-  const recentCampaigns = [
-    `${companyName} launched a rebrand campaign targeting enterprise clients in Q1`,
-    `${companyName} partnered with major industry association for thought leadership content`,
-    `${companyName} ran a digital-first acquisition push with $2M+ ad spend targeting SMB segment`,
-    `${companyName} introduced a freemium tier to capture mid-market leads`,
-  ];
-
-  const events = [
-    `Sponsored booth at the industry's flagship annual conference`,
-    `Hosted a virtual summit with 3,000+ attendees from ${category} sector`,
-    `Participated in 12 regional roadshows across North America and EMEA`,
-    `Co-sponsored a hackathon focused on ${category} innovation`,
-  ];
-
-  return { competitors: competitors.slice(0, 4), recentCampaigns, events };
-}
-
-function buildKnowledgeGraph(companyName: string, category: string, competitors: string[]) {
-  const nodes: { id: string; type: string }[] = [
-    { id: companyName, type: "company" },
-    { id: category, type: "market" },
-    ...competitors.map((c) => ({ id: c, type: "competitor" })),
-    { id: "Enterprise Segment", type: "segment" },
-    { id: "SMB Segment", type: "segment" },
-    { id: "Price Sensitivity", type: "risk" },
-    { id: "Platform Lock-in", type: "risk" },
-    { id: "AI Disruption", type: "trend" },
-  ];
-
-  const edges: { from: string; to: string; relation: string }[] = [
-    { from: companyName, to: category, relation: "operates_in" },
-    { from: companyName, to: "Enterprise Segment", relation: "targets" },
-    { from: companyName, to: "SMB Segment", relation: "targets" },
-    ...competitors.map((c) => ({ from: c, to: category, relation: "competes_in" })),
-    ...competitors.map((c) => ({ from: companyName, to: c, relation: "competes_with" })),
-    { from: "AI Disruption", to: category, relation: "threatens" },
-    { from: "Price Sensitivity", to: "SMB Segment", relation: "affects" },
-    { from: "Platform Lock-in", to: "Enterprise Segment", relation: "affects" },
-  ];
-
-  const intersections = competitors.filter((_, i) => i < 2).map((c) => ({
-    competitor: c,
-    overlap: ["Enterprise Segment", "SMB Segment"][Math.floor(Math.random() * 2)],
-  }));
-
-  return { nodes, edges, intersections };
-}
-
-function getMockContacts(companyName: string): {
-  name: string; title: string; email: string | null; phone: string | null; linkedin: string | null; verified: boolean;
-}[] {
-  const mockDb: Record<string, { name: string; title: string; email: string; phone: string; linkedin: string }[]> = {
-    default: [],
-  };
-
-  const result = mockDb[companyName.toLowerCase()] ?? mockDb["default"] ?? [];
-  return result.length > 0
-    ? result.map((c) => ({ ...c, verified: true }))
-    : [
-        {
-          name: "Verified Data Unavailable - Manual Extraction Required",
-          title: "Verified Data Unavailable - Manual Extraction Required",
-          email: null,
-          phone: null,
-          linkedin: null,
-          verified: false,
-        },
-      ];
 }
 
 router.post("/intelligence/generate", async (req, res) => {
@@ -107,104 +38,170 @@ router.post("/intelligence/generate", async (req, res) => {
   const { companyName, category } = parsed.data;
 
   try {
-    const { competitors, recentCampaigns, events } = buildMockScraperData(companyName, category);
-    const graph = buildKnowledgeGraph(companyName, category, competitors);
+    req.log.info({ companyName, category }, "Starting web research phase");
 
-    const systemPrompt = `You are a B2B market intelligence analyst. Generate structured market intelligence for ${companyName} in the ${category} sector.
-    
-You have access to the following scraped data:
-- Recent campaigns: ${recentCampaigns.join("; ")}
-- Events/sponsorships: ${events.join("; ")}
-- Knowledge graph intersections: ${JSON.stringify(graph.intersections)}
-- Competitors identified: ${competitors.join(", ")}
+    const [overviewResults, competitorResults, campaignResults, eventResults, leadershipResults] =
+      await Promise.all([
+        searchWeb(`${companyName} ${category} company overview business model 2024`),
+        searchWeb(`${companyName} competitors market rivals ${category}`),
+        searchWeb(`${companyName} marketing campaign brand launch 2024 2025`),
+        searchWeb(`${companyName} events conference sponsorship 2024 2025`),
+        searchWeb(`${companyName} CEO CMO CRO VP leadership executives`),
+      ]);
 
-Rules:
-1. Be specific and professional. Reference the actual company name and category throughout.
-2. Strategic Watchouts MUST be derived from the knowledge graph intersections and competitor overlaps — deduce non-obvious risks.
-3. Outreach MUST reference specific recent campaigns and watchouts.
-4. Return ONLY valid JSON. No markdown, no code blocks.`;
+    const webContext = `=== COMPANY OVERVIEW ===
+${overviewResults}
 
-    const userPrompt = `Generate a complete market intelligence report for ${companyName} (${category}). 
+=== COMPETITORS & MARKET RIVALS ===
+${competitorResults}
 
-Return a JSON object with exactly these keys:
+=== BRAND CAMPAIGNS & LAUNCHES ===
+${campaignResults}
+
+=== EVENTS & SPONSORSHIPS ===
+${eventResults}
+
+=== LEADERSHIP & EXECUTIVES ===
+${leadershipResults}`;
+
+    req.log.info({ companyName }, "Web research complete, calling NVIDIA minimax-m2.7");
+
+    const systemPrompt = `You are an elite B2B market intelligence analyst. You have just completed a live web research session on ${companyName} operating in the ${category} sector. Your job is to synthesize the real search data below into a precise, professional intelligence report used by enterprise sales teams.
+
+LIVE WEB RESEARCH DATA:
+${webContext}
+
+CRITICAL RULES:
+1. Reference specific, real facts from the search results — actual product names, real campaigns, real executive names, actual company details.
+2. Do NOT fabricate statistics, revenue figures, or specific contact details not found in the data.
+3. Strategic Watchouts must identify non-obvious, cross-domain risks that a less informed analyst would miss.
+4. Contact Intelligence: ONLY include executives actually found in the leadership search results with confirmed details. If none found, return the zero-hallucination placeholder object.
+5. Outreach copy must reference ${companyName}'s specific real campaigns and their actual competitive dynamics.
+6. Return ONLY valid JSON. No markdown fences, no code blocks, no commentary before or after.`;
+
+    const userPrompt = `Generate a complete, deeply researched market intelligence report for ${companyName} (${category}).
+
+Return ONLY a valid JSON object with exactly these keys:
 {
-  "companyOverview": "3-4 sentence overview of the company's business model, scale, and market positioning",
-  "marketPosition": "3-4 sentences on brand perception, recent market shifts, and competitive standing",
+  "companyOverview": "3-4 sentences grounded in real search data — their business model, key products/services, scale, and strategic positioning",
+  "marketPosition": "3-4 sentences on their brand perception, competitive standing, recent market shifts, and momentum signals",
   "competitorMapping": [
-    {"name": "CompetitorA", "strengths": "what they do well", "gaps": "where they fall short"},
-    ... 3-4 competitors total
+    {"name": "ActualCompetitorName", "strengths": "specific real strengths", "gaps": "specific real weaknesses"},
+    (3-4 real competitors from search results)
   ],
-  "brandActivity": "3-4 sentences summarizing the most impactful campaigns and launches from the last 12-24 months. Reference specific campaigns.",
-  "experientialFootprint": "3-4 sentences about events, sponsorships, and experiential activations",
-  "strategicWatchouts": "3-4 sentences identifying 2-3 non-obvious strategic risks based on competitor overlaps and market tensions. Must reference specific graph insights.",
+  "brandActivity": "3-4 sentences referencing specific real campaigns, product launches, or partnerships from the last 12-24 months found in search results",
+  "experientialFootprint": "3-4 sentences about real events, conferences, sponsorships, or experiential activations found in search results",
+  "strategicWatchouts": "3-4 sentences identifying 2-3 non-obvious strategic risks derived from the competitive landscape and market dynamics — cross-domain reasoning required",
   "decisionMakerRoles": [
-    {"title": "Chief Marketing Officer", "rationale": "Why this role controls the relevant budget"},
-    ... 2-3 roles
+    {"title": "Exact Job Title", "rationale": "specific reason this role controls the relevant budget or decision"},
+    (2-3 roles)
+  ],
+  "contactIntelligence": [
+    IF real executives were found in search: {"name": "Real Name", "title": "Real Title", "email": null, "phone": null, "linkedin": "URL if found or null", "verified": true}
+    IF no real contacts found: {"name": "Verified Data Unavailable - Manual Extraction Required", "title": "Verified Data Unavailable - Manual Extraction Required", "email": null, "phone": null, "linkedin": null, "verified": false}
   ],
   "outreach": {
-    "linkedinMessage": "A 3-sentence personalized LinkedIn outreach message. Reference a specific campaign and watchout.",
-    "emailSubject": "A compelling email subject line (max 60 chars)",
-    "emailBody": "A 4-5 paragraph cold email. Paragraph 1: warm opener referencing ${companyName}'s specific campaign. Paragraph 2: bridge to their strategic watchout. Paragraph 3: introduce your value proposition. Paragraph 4: social proof. Paragraph 5: clear CTA. Do NOT use placeholders like [Your Name] — use 'I' perspective.",
-    "trackingPixelHtml": "<img src=\\"https://omnisense-api.com/track/open/TRACK_ID\\" width=\\"1\\" height=\\"1\\" style=\\"display:none\\" />",
-    "trackingLogicExplanation": "2-3 sentences explaining how the tracking pixel works and the webhook architecture for monitoring open rates."
+    "linkedinMessage": "3-sentence personalized LinkedIn outreach referencing a specific ${companyName} campaign or product and a strategic watchout",
+    "emailSubject": "Compelling subject line under 60 characters",
+    "emailBody": "4-5 paragraph cold email in first-person: paragraph 1 = warm opener referencing specific ${companyName} activity; paragraph 2 = bridge to their strategic risk; paragraph 3 = value proposition; paragraph 4 = social proof or insight; paragraph 5 = clear CTA. No placeholders like [Your Name].",
+    "trackingPixelHtml": "<img src=\\"https://omnisense.app/track/open/PLACEHOLDER\\" width=\\"1\\" height=\\"1\\" style=\\"display:none\\" />",
+    "trackingLogicExplanation": "2-3 sentences on the tracking pixel webhook architecture and how open-rate data is captured and routed to the CRM."
   }
 }`;
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-5.4",
-      max_completion_tokens: 4096,
+    const stream = await nvidiaClient.chat.completions.create({
+      model: "minimaxai/minimax-m2.7",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
+      temperature: 0.7,
+      top_p: 0.9,
+      max_tokens: 4096,
+      stream: true,
     });
 
-    const raw = completion.choices[0]?.message?.content ?? "{}";
+    let raw = "";
+    for await (const chunk of stream) {
+      if (!chunk.choices?.length) continue;
+      const delta = chunk.choices[0]?.delta?.content;
+      if (delta) raw += delta;
+    }
+
+    req.log.info({ companyName, rawLength: raw.length }, "AI response received");
+
+    const jsonMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+    const jsonStr = jsonMatch ? jsonMatch[1] : raw;
+
     let aiOutput: Record<string, unknown>;
     try {
-      aiOutput = JSON.parse(raw);
+      aiOutput = JSON.parse(jsonStr.trim());
     } catch {
+      req.log.warn({ raw: raw.slice(0, 500) }, "Failed to parse AI JSON, using fallback");
       aiOutput = {};
     }
 
     const trackingId = generateTrackingId();
-    const contacts = getMockContacts(companyName);
+
+    const aiContacts = aiOutput.contactIntelligence as {
+      name: string; title: string; email: string | null; phone: string | null; linkedin: string | null; verified: boolean;
+    }[] | undefined;
+
+    const contactIntelligence =
+      Array.isArray(aiContacts) && aiContacts.length > 0
+        ? aiContacts
+        : [
+            {
+              name: "Verified Data Unavailable - Manual Extraction Required",
+              title: "Verified Data Unavailable - Manual Extraction Required",
+              email: null,
+              phone: null,
+              linkedin: null,
+              verified: false,
+            },
+          ];
+
+    const outreach = aiOutput.outreach as Record<string, string> | undefined;
 
     const report = {
       companyName,
       category,
-      companyOverview: (aiOutput.companyOverview as string) ?? `${companyName} is a leading player in the ${category} space.`,
-      marketPosition: (aiOutput.marketPosition as string) ?? "Market position data processing.",
-      competitorMapping: (aiOutput.competitorMapping as { name: string; strengths: string; gaps: string }[]) ?? competitors.map((c) => ({ name: c, strengths: "Strong brand recognition and customer base", gaps: "Limited innovation pipeline and slow enterprise sales cycle" })),
-      brandActivity: (aiOutput.brandActivity as string) ?? recentCampaigns.join(" "),
-      experientialFootprint: (aiOutput.experientialFootprint as string) ?? events.join(" "),
-      strategicWatchouts: (aiOutput.strategicWatchouts as string) ?? `Based on Knowledge Graph analysis: competitor overlap at ${graph.intersections[0]?.overlap ?? "Enterprise"} segment creates pricing pressure. AI Disruption node threatens ${category} incumbents.`,
-      decisionMakerRoles: (aiOutput.decisionMakerRoles as { title: string; rationale: string }[]) ?? [
-        { title: "Chief Marketing Officer", rationale: "Controls brand and campaign budgets relevant to this engagement" },
-        { title: "VP of Sales", rationale: "Owns revenue targets and outbound motion" },
-        { title: "Chief Revenue Officer", rationale: "Accountable for overall GTM strategy and vendor partnerships" },
-      ],
-      contactIntelligence: contacts,
+      companyOverview:
+        (aiOutput.companyOverview as string) ??
+        `${companyName} is a company operating in the ${category} market.`,
+      marketPosition:
+        (aiOutput.marketPosition as string) ?? "Market position analysis unavailable.",
+      competitorMapping:
+        (aiOutput.competitorMapping as { name: string; strengths: string; gaps: string }[]) ?? [],
+      brandActivity: (aiOutput.brandActivity as string) ?? "Brand activity data unavailable.",
+      experientialFootprint:
+        (aiOutput.experientialFootprint as string) ?? "Experiential footprint data unavailable.",
+      strategicWatchouts:
+        (aiOutput.strategicWatchouts as string) ?? "Strategic watchouts analysis unavailable.",
+      decisionMakerRoles:
+        (aiOutput.decisionMakerRoles as { title: string; rationale: string }[]) ?? [],
+      contactIntelligence,
       outreach: {
-        linkedinMessage: ((aiOutput.outreach as Record<string, string>)?.linkedinMessage) ?? `Hi [Name], I noticed ${companyName}'s recent campaign and wanted to connect. We help companies like yours address the exact market tension you're facing. Would love 15 minutes to explore synergies.`,
-        emailSubject: ((aiOutput.outreach as Record<string, string>)?.emailSubject) ?? `${companyName} + Strategic Partnership Opportunity`,
-        emailBody: ((aiOutput.outreach as Record<string, string>)?.emailBody) ?? "Email body processing.",
-        trackingPixelHtml: `<img src="https://omnisense-api.com/track/open/${trackingId}" width="1" height="1" style="display:none" />`,
-        trackingLogicExplanation: ((aiOutput.outreach as Record<string, string>)?.trackingLogicExplanation) ?? `When the recipient opens the HTML email, their client silently loads the 1x1 pixel from our tracking endpoint. The server records the timestamp, IP, and user-agent, then fires a webhook to your CRM. This gives real-time open-rate visibility without modifying the email copy.`,
+        linkedinMessage: outreach?.linkedinMessage ?? "",
+        emailSubject: outreach?.emailSubject ?? `${companyName} — Strategic Intelligence`,
+        emailBody: outreach?.emailBody ?? "",
+        trackingPixelHtml: `<img src="https://omnisense.app/track/open/${trackingId}" width="1" height="1" style="display:none" />`,
+        trackingLogicExplanation:
+          outreach?.trackingLogicExplanation ??
+          "When the recipient opens the HTML email, their client silently loads the 1x1 pixel from the tracking endpoint. The server logs the timestamp, IP address, and user-agent, then fires a webhook to your CRM for real-time open-rate visibility.",
       },
       generatedAt: new Date().toISOString(),
     };
 
-    const [saved] = await db.insert(reportsTable).values({
-      companyName,
-      category,
-      report,
-    }).returning();
+    const [saved] = await db.insert(reportsTable).values({ companyName, category, report }).returning();
 
-    res.json(report);
+    res.json({ ...report, id: saved!.id });
   } catch (err) {
     req.log.error({ err }, "Intelligence generation failed");
-    res.status(500).json({ error: "generation_failed", message: "Failed to generate intelligence report" });
+    res.status(500).json({
+      error: "generation_failed",
+      message: "Failed to generate intelligence report",
+    });
   }
 });
 
