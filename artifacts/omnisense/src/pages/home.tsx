@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
-import { motion, useInView, useScroll, useTransform } from "framer-motion";
+import { motion, useInView } from "framer-motion";
 import {
   Brain, Globe, Zap, Shield, BarChart3, Search,
   Target, Cpu, Database, TrendingUp, Mail, Eye, Code2,
@@ -132,10 +132,7 @@ export default function Home() {
 
   const typeWord = useTypewriter(["Salesforce", "HubSpot", "Notion", "Figma", "Linear", "Stripe"], 90, 2200);
 
-  const heroRef = useRef(null);
-  const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
-  const heroY = useTransform(scrollYProgress, [0, 1], [0, 120]);
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
+  const heroRef = useRef<HTMLElement>(null);
 
   const handleGenerate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -158,8 +155,8 @@ export default function Home() {
         <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse 80% 60% at 50% 50%, transparent 0%, #030308 100%)' }} />
 
         {/* Orbs */}
-        <motion.div className="orb" style={{ width: 800, height: 800, top: -250, left: -250, background: 'radial-gradient(circle, rgba(124,58,237,0.5), transparent 65%)', y: heroY, opacity: heroOpacity, animation: 'float 10s ease-in-out infinite' }} />
-        <motion.div className="orb" style={{ width: 600, height: 600, top: '20%', right: -180, background: 'radial-gradient(circle, rgba(6,182,212,0.32), transparent 65%)', y: heroY, animation: 'drift 13s ease-in-out infinite' }} />
+        <div className="orb" style={{ width: 800, height: 800, top: -250, left: -250, background: 'radial-gradient(circle, rgba(124,58,237,0.5), transparent 65%)', animation: 'float 10s ease-in-out infinite' }} />
+        <div className="orb" style={{ width: 600, height: 600, top: '20%', right: -180, background: 'radial-gradient(circle, rgba(6,182,212,0.32), transparent 65%)', animation: 'drift 13s ease-in-out infinite' }} />
         <div className="orb" style={{ width: 500, height: 500, bottom: -120, left: '35%', background: 'radial-gradient(circle, rgba(236,72,153,0.22), transparent 65%)', animation: 'float-alt 15s ease-in-out infinite 3s' }} />
 
         {/* Floating icons */}
