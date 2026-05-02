@@ -14,7 +14,7 @@
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-omnisense.replit.app-7c3aed?style=for-the-badge&logo=rocket&logoColor=white)](https://blueprint-master--muthukumarankcs.replit.app/)
 [![NVIDIA Powered](https://img.shields.io/badge/NVIDIA-minimax--m2.7-76b900?style=for-the-badge&logo=nvidia&logoColor=white)](https://integrate.api.nvidia.com)
-[![GraphRAG](https://img.shields.io/badge/GraphRAG™-Enabled-06b6d4?style=for-the-badge&logo=graphql&logoColor=white)]
+[![GraphRAG](https://img.shields.io/badge/GraphRAG™-Enabled-06b6d4?style=for-the-badge&logo=graphql&logoColor=white)]()
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178c6?style=for-the-badge&logo=typescript&logoColor=white)](https://typescriptlang.org)
 [![React](https://img.shields.io/badge/React-18-61dafb?style=for-the-badge&logo=react&logoColor=black)](https://react.dev)
 [![License](https://img.shields.io/badge/License-MIT-f472b6?style=for-the-badge)](LICENSE)
