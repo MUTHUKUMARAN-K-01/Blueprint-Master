@@ -2,11 +2,13 @@ import { useGetReport } from "@workspace/api-client-react";
 import { useParams, Link } from "wouter";
 import { motion } from "framer-motion";
 import {
-  Building, Target, Shield, Users, Mail, Copy, CheckCircle2,
-  Globe, Star, Code2, Fingerprint, Network, Lock, ExternalLink, Zap
+  Building, Target, Shield, Users, Copy, CheckCircle2,
+  Globe, Star, Code2, Fingerprint, Lock, ExternalLink, Zap, Download, FileText
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { pdf } from "@react-pdf/renderer";
+import { ReportPDF } from "@/components/ReportPDF";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -47,6 +49,8 @@ export default function Report() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<"email" | "linkedin" | "pixel">("email");
 
+  const [pdfLoading, setPdfLoading] = useState(false);
+
   const { data, isLoading, error } = useGetReport(reportId, {
     query: { enabled: !!reportId, queryKey: ['/api/reports', reportId] as any }
   });
@@ -59,6 +63,27 @@ export default function Report() {
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href);
     toast({ title: "Link copied", description: "Share this report URL." });
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!data?.report || pdfLoading) return;
+    setPdfLoading(true);
+    try {
+      const blob = await pdf(<ReportPDF report={data.report} />).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${data.report.companyName.replace(/\s+/g, "-")}-Intelligence-Report.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast({ title: "PDF downloaded", description: "Your intelligence report is ready." });
+    } catch {
+      toast({ title: "PDF failed", description: "Could not generate PDF. Please try again." });
+    } finally {
+      setPdfLoading(false);
+    }
   };
 
   if (isLoading) {
@@ -125,7 +150,18 @@ export default function Report() {
             <button onClick={handleShare} className="btn-ghost !py-2.5 !px-5 !text-[13px]">
               <ExternalLink className="h-3.5 w-3.5" /> Share
             </button>
-            <Link href="/" className="btn-primary !py-2.5 !px-5 !text-[13px] no-underline">
+            <button
+              onClick={handleDownloadPDF}
+              disabled={pdfLoading}
+              className="btn-primary !py-2.5 !px-5 !text-[13px]"
+              style={pdfLoading ? { opacity: 0.7, cursor: 'wait' } : {}}
+            >
+              {pdfLoading
+                ? <><FileText className="h-3.5 w-3.5 animate-pulse" /> Preparing PDF…</>
+                : <><Download className="h-3.5 w-3.5" /> Download PDF</>
+              }
+            </button>
+            <Link href="/" className="btn-ghost !py-2.5 !px-5 !text-[13px] no-underline">
               <Zap className="h-3.5 w-3.5" /> New Report
             </Link>
           </motion.div>
@@ -398,15 +434,27 @@ export default function Report() {
       </section>
 
       {/* Sticky bar */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full flex items-center gap-4"
-        style={{ background: 'rgba(5,5,16,0.85)', backdropFilter: 'blur(24px)', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 0 40px rgba(0,0,0,0.5)' }}>
-        <span className="text-[14px] font-[700] hidden md:block max-w-[180px] truncate gradient-text">{report.companyName}</span>
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-full flex items-center gap-3"
+        style={{ background: 'rgba(5,5,16,0.88)', backdropFilter: 'blur(24px)', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 0 40px rgba(0,0,0,0.5)' }}>
+        <span className="text-[14px] font-[700] hidden md:block max-w-[160px] truncate gradient-text">{report.companyName}</span>
+        <div className="w-px h-4 hidden md:block" style={{ background: 'rgba(255,255,255,0.12)' }} />
         <div className="flex items-center gap-2">
-          <button onClick={handleShare} className="btn-ghost !py-2 !px-4 !text-[13px]">
+          <button onClick={handleShare} className="btn-ghost !py-2 !px-4 !text-[12px]">
             <ExternalLink className="h-3.5 w-3.5" /> Share
           </button>
-          <Link href="/" className="btn-primary !py-2 !px-5 !text-[13px] no-underline">
-            <Zap className="h-3.5 w-3.5" /> New Report
+          <button
+            onClick={handleDownloadPDF}
+            disabled={pdfLoading}
+            className="btn-primary !py-2 !px-4 !text-[12px]"
+            style={pdfLoading ? { opacity: 0.65, cursor: 'wait' } : {}}
+          >
+            {pdfLoading
+              ? <><FileText className="h-3.5 w-3.5 animate-pulse" /> PDF…</>
+              : <><Download className="h-3.5 w-3.5" /> PDF</>
+            }
+          </button>
+          <Link href="/" className="btn-ghost !py-2 !px-4 !text-[12px] no-underline">
+            <Zap className="h-3.5 w-3.5" /> New
           </Link>
         </div>
       </div>
